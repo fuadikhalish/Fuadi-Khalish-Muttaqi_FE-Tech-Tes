@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>HashMicro - Employee Management</title>
+    <link rel="icon" type="image/png" href="./assets/hashMicro.png">
+    <link rel="shortcut icon" type="image/png" href="./assets/hashMicro.png">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font/css/materialdesignicons.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+    <div class="floating-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+        <div class="shape shape-4"></div>
+        <div class="shape shape-5"></div>
+        <div class="shape shape-6"></div>
+    </div>
+    <div id="app">
+        <nav class="navbar " style="background: linear-gradient(to right, #BE1E2E, #8B1620); box-shadow: 0 6px 16px rgba(0,0,0,0.3);">
+            <div class="container d-flex justify-content-between align-items-center">
+                <a class="navbar-brand" href="https://www.hashmicro.com/id/" target="_blank" style="display: flex; align-items: center;">
+                    <img src="./assets/hashMicro.png" alt="HashMacro" height="50">
+                    <span style="color: white; font-size: 1.5rem; margin-left: 15px;">
+                        <span style="font-weight: bold;">HASH</span><span style="font-weight: 300;">MACRO</span>
+                    </span>
+                </a>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="text-align: right; color: white; line-height: 1.2; font-weight: 900;">
+                        <div style="font-size: 0.9rem;">for my</div>
+                        <div style="font-size: 1.8rem;">profile</div>
+                    </div>
+                    <i class="mdi mdi-redo" style="color: white; font-size: 1.5rem;"></i>
+                    <button class="btn btn-outline-light" @click="openLinkedIn">
+                        Click This!
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <v-container>
+            <v-col cols="12" class="text-center">
+                <div class="fs-2 fw-bold" style="color: #003d73; text-shadow: 1px 1px 0 white, -1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white;">Employee Management</div>
+                <p class="text-muted">Manage and monitor employee data efficiently</p>
+            </v-col>
+            <v-skeleton-loader v-if="isLoading" type="card"></v-skeleton-loader>
+            <v-row v-else>
+                <v-col cols="12">
+                    <v-btn append-icon="mdi-plus" @click="() => { resetFormAndMode(); showAddDialog = true; }"
+                        style="margin-bottom: 10px; margin-left: 10px; background-color: #fd9800; color: white;">
+                        Add Employee
+                    </v-btn>
+                    <i class="mdi mdi-arrow-down-right" style="color: #333; font-size: 1.5rem; margin-left: 10px; margin-bottom: 10px;"></i>
+                    <div class="table-responsive">
+                        <table class="table"
+                            style="border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid #dee2e6;">
+                            <thead style="background-color: #fd9800">
+                                <tr>
+                                    <th scope="col">ID</th>
+                                    <th scope="col">Name</th>
+                                    <th scope="col">Role</th>
+                                    <th scope="col">Department</th>
+                                    <th scope="col" class="text-center">Status</th>
+                                    <th scope="col">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-if="employees.length === 0">
+                                    <td colspan="6" class="text-center text-muted py-4">
+                                        <i class="mdi mdi-account-off me-2"></i>
+                                        No employee data available
+                                    </td>
+                                </tr>
+                                <tr v-for="data in employees" :key="data.id" v-else>
+                                    <td>{{ data.id }}</td>
+                                    <td>{{ data.name }}</td>
+                                    <td>{{ data.role }}</td>
+                                    <td>{{ data.department }}</td>
+                                    <td class="text-center">
+                                        <span
+                                            :class="`badge ${data.status === 'Active' ? 'bg-success' : data.status === 'On Leave' ? 'bg-warning' : 'bg-danger'}`">
+                                            {{ data.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <i class="mdi mdi-pencil text-primary me-2"
+                                            style="cursor: pointer; font-size: 24px;"
+                                            @click="editEmployee(data.id)"></i>
+                                        <i class="mdi mdi-delete text-danger" style="cursor: pointer; font-size: 24px;"
+                                            @click="deleteEmployee(data.id)"></i>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p class="text-muted mt-2 mb-0" style="font-size: 0.875rem;">
+                            <strong>NB:</strong> the table data is dynamically sourced from the <strong>Pinia</strong> store.
+                        </p>
+                    </div>
+            </v-row>
+        </v-container>
+
+        <v-dialog v-model="showAddDialog" width="600">
+            <template v-slot:default="{ isActive }">
+                <v-card>
+                    <v-card-title style="color: #003d73;">{{ isEditMode ? 'Edit Employee' : 'Add New Employee' }}</v-card-title>
+                    <v-card-text style="margin-top: 10px;">
+                        <v-form>
+                            <v-text-field v-model="newEmployee.name" label="Full Name" required class="mb-3">
+                            </v-text-field>
+
+                            <v-text-field v-model="newEmployee.role" label="Role" required class="mb-3">
+                            </v-text-field>
+
+                            <v-text-field v-model="newEmployee.department" label="Department" required class="mb-3">
+                            </v-text-field>
+
+                            <v-select v-model="newEmployee.status" :items="statusOptions" label="Status" required>
+                            </v-select>
+                        </v-form>
+                    </v-card-text>
+                    <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn @click="cancelEdit(isActive)">Cancel</v-btn>
+                        <v-btn @click="isEditMode ? updateEmployee() : addEmployee()" color="primary">
+                            {{ isEditMode ? 'Update' : 'Save' }}
+                        </v-btn>
+                    </v-card-actions>
+                </v-card>
+            </template>
+        </v-dialog>
+        <v-dialog v-model="dialog" width="500" @click:outside="handleClose">
+            <template v-slot:default="{ isActive }">
+                <v-card>
+                    <v-card-title style="color: #003d73;">Hi awesome tech recruiter 👋</v-card-title>
+                    <v-card-text style="margin-top: 10px;">
+                        Thank you for the exciting challenge.
+                        I really enjoyed it and did my best to complete it.
+                    </v-card-text>
+                    <v-card-text>
+                        <p class="text-muted" style="font-size: 0.87rem;">
+                            <strong>NB:</strong> the table data is dynamically sourced from the <strong>Pinia</strong> store.
+                        </p>
+                    </v-card-text>
+                    <v-card-text>
+                        <small class="text-muted" style="font-size: 0.75rem;">
+                            Best regards, <br>
+                            Fuadi Khalish Muttaqi
+                        </small>
+                    </v-card-text>
+
+                    <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn text="Let's rock!🤘" @click="handleClose()" 
+                               style="background-color: #fd9800; color: white;" />
+                    </v-card-actions>
+                </v-card>
+            </template>
+        </v-dialog>
+        
+        <v-dialog v-model="showDeleteDialog" width="400">
+            <template v-slot:default="{ isActive }">
+                <v-card>
+                    <v-card-title class="text-h6" style="color: #003d73;">
+                        Confirm Delete
+                    </v-card-title>
+                    <v-card-text>
+                        Are you sure you want to delete {{ employees.find(emp => emp.id === employeeIdToDelete)?.name }}?
+                        <br><small class="text-muted">This action cannot be undone.</small>
+                    </v-card-text>
+                    <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn @click="isActive.value = false">Cancel</v-btn>
+                        <v-btn @click="confirmDelete" color="error">Delete</v-btn>
+                    </v-card-actions>
+                </v-card>
+            </template>
+        </v-dialog>
+        
+        <v-dialog v-model="showUpdateDialog" width="450">
+            <template v-slot:default="{ isActive }">
+                <v-card>
+                    <v-card-title class="text-h6" style="color: #003d73;">
+                        Confirm Update
+                    </v-card-title>
+                    <v-card-text>
+                        Are you sure you want to update {{ employeeToUpdate?.name }}'s information?
+                        <br><small class="text-muted">The changes will be saved immediately.</small>
+                    </v-card-text>
+                    <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn @click="isActive.value = false">Cancel</v-btn>
+                        <v-btn @click="confirmUpdate" color="primary">Update</v-btn>
+                    </v-card-actions>
+                </v-card>
+            </template>
+        </v-dialog>
+
+        <v-snackbar
+            v-model="toast.show"
+            :color="toast.color"
+            :timeout="3000"
+            top
+            right
+        >
+            {{ toast.message }}
+            <template v-slot:actions>
+                <v-btn
+                    color="white"
+                    variant="text"
+                    @click="toast.show = false"
+                >
+                    Close
+                </v-btn>
+            </template>
+        </v-snackbar>
+
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue-demi@latest/lib/index.iife.js"></script>
+    <script src="https://unpkg.com/pinia@2/dist/pinia.iife.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./employeeStore.js"></script>
+
+
+    <script>
+        const { createApp, onMounted, ref } = Vue
+        const { createVuetify } = Vuetify
+        const { createPinia } = Pinia
+
+        const vuetify = createVuetify()
+        const pinia = createPinia()
+
+        createApp({
+            setup() {
+                const employeeStore = useEmployeeStore()
+                
+                const dialog = ref(false)
+                const isLoading = ref(true)
+                const showAddDialog = ref(false)
+                const showDeleteDialog = ref(false)
+                const showUpdateDialog = ref(false)
+                const isEditMode = ref(false)
+                const editingEmployeeId = ref(null)
+                const employeeIdToDelete = ref(null)
+                const employeeToUpdate = ref(null)
+                const toast = ref({
+                    show: false,
+                    message: '',
+                    color: 'success'
+                })
+                const newEmployee = ref({
+                    name: '',
+                    role: '',
+                    department: '',
+                    status: ''
+                })
+                const statusOptions = ['Active', 'On Leave', 'Inactive']
+
+                const resetFormAndMode = () => {
+                    newEmployee.value = { name: '', role: '', department: '', status: '' }
+                    isEditMode.value = false
+                    editingEmployeeId.value = null
+                }
+
+                const showToast = (message, color = 'success') => {
+                    toast.value.message = message
+                    toast.value.color = color
+                    toast.value.show = true
+                }
+
+                const handleClose = () => {
+                    isLoading.value = false
+                    dialog.value = false
+                }
+
+                const openLinkedIn = () => {
+                    window.open('https://www.linkedin.com/in/fuadi-khalish-muttaqi-8826571aa', '_blank')
+                }
+
+                const addEmployee = () => {
+                    if (newEmployee.value.name && newEmployee.value.role && newEmployee.value.department && newEmployee.value.status) {
+                        isLoading.value = true
+                        
+                        employeeStore.addEmployee(newEmployee.value)
+                        newEmployee.value = { name: '', role: '', department: '', status: '' }
+                        showAddDialog.value = false
+                        
+                        setTimeout(() => {
+                            isLoading.value = false
+                            showToast('Employee added successfully!', 'success')
+                        }, 500)
+                    } else {
+                        showToast('Please fill in all fields!', 'warning')
+                    }
+                }
+
+                const editEmployee = (id) => {
+                    const employee = employeeStore.getEmployeeById(id)
+                    if (employee) {
+                        newEmployee.value = { ...employee }
+                        editingEmployeeId.value = id
+                        isEditMode.value = true
+                        showAddDialog.value = true
+                    }
+                }
+
+                const updateEmployee = () => {
+                    if (newEmployee.value.name && newEmployee.value.role && newEmployee.value.department && newEmployee.value.status) {
+                        employeeToUpdate.value = { ...newEmployee.value }
+                        showUpdateDialog.value = true
+                    } else {
+                        showToast('Please fill in all fields!', 'warning')
+                    }
+                }
+
+                const confirmUpdate = () => {
+                    if (employeeToUpdate.value) {
+                        isLoading.value = true
+                        
+                        employeeStore.updateEmployee(editingEmployeeId.value, employeeToUpdate.value)
+                        newEmployee.value = { name: '', role: '', department: '', status: '' }
+                        isEditMode.value = false
+                        editingEmployeeId.value = null
+                        showAddDialog.value = false
+                        showUpdateDialog.value = false
+                        employeeToUpdate.value = null
+                        
+                        setTimeout(() => {
+                            isLoading.value = false
+                            showToast('Employee updated successfully!', 'info')
+                        }, 500)
+                    }
+                }
+
+                const cancelEdit = (isActive) => {
+                    newEmployee.value = { name: '', role: '', department: '', status: '' }
+                    isEditMode.value = false
+                    editingEmployeeId.value = null
+                    isActive.value = false
+                }
+
+                const deleteEmployee = (id) => {
+                    employeeIdToDelete.value = id
+                    showDeleteDialog.value = true
+                }
+                
+                const confirmDelete = () => {
+                    isLoading.value = true
+                    
+                    employeeStore.removeEmployee(employeeIdToDelete.value)
+                    showDeleteDialog.value = false
+                    employeeIdToDelete.value = null
+                    
+                    setTimeout(() => {
+                        isLoading.value = false
+                        showToast('Employee deleted successfully!', 'error')
+                    }, 500)
+                }
+
+                onMounted(() => {
+                    setTimeout(() => {
+                        dialog.value = true
+                    }, 800);
+                })
+
+                return {
+                    dialog,
+                    isLoading,
+                    handleClose,
+                    openLinkedIn,
+                    showAddDialog,
+                    showDeleteDialog,
+                    showUpdateDialog,
+                    isEditMode,
+                    editingEmployeeId,
+                    employeeIdToDelete,
+                    employeeToUpdate,
+                    newEmployee,
+                    statusOptions,
+                    toast,
+                    resetFormAndMode,
+                    showToast,
+                    addEmployee,
+                    editEmployee,
+                    updateEmployee,
+                    confirmUpdate,
+                    cancelEdit,
+                    deleteEmployee,
+                    confirmDelete,
+                    employees: employeeStore.employees,
+                }
+            }
+        }).use(vuetify).use(pinia).mount('#app')
+    </script>
+</body>
+
+</html>
